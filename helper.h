@@ -1,11 +1,3 @@
-//
-//  helper.h
-//  multi_thread_programming
-//
-//  Created by Igarashi Masanori on 2018/09/04.
-//  Copyright © 2018 Igarashi Masanori. All rights reserved.
-//
-
 #ifndef helper_h
 #define helper_h
 
