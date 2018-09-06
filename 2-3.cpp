@@ -31,7 +31,7 @@ static void *threadFunc(void *arg)
 }
 
 
-int p2_3_first_thread2(int argv, char *argc[])
+int p2_3_first_thread2(int argc, char *argv[])
 {
     VPRINTF("Hello world\n");
 
