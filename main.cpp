@@ -9,6 +9,7 @@ int p3_2_variables(int argc, char *argv[]);
 int p3_3_variables2(int argc, char *argv[]);
 int p3_4_variables4(int argc, char *argv[]);
 int p3_6_variablesProc(int argc, char *argv[]);
+int p3_7_fdProcess(int argc, char *argv[]);
 
 int main(int argc, char *argv[])
 {
@@ -20,7 +21,8 @@ int main(int argc, char *argv[])
 	//p3_2_variables(argc, argv);
 	//p3_3_variables2(argc, argv);
 	//p3_4_variables4(argc, argv);
-	p3_6_variablesProc(argc, argv);
+	//p3_6_variablesProc(argc, argv);
+    p3_7_fdProcess(argc, argv);
 
 	return 0;
 }
