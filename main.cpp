@@ -13,6 +13,7 @@ int p3_7_fdProcess(int argc, char *argv[]);
 int p3_9_maxData(int argc, char *argv[]);
 int p3_10_maxData2(int argc, char *argv[]);
 int p4_1_primeNumber(int argc, char *argv[]);
+int p4_4_primeNumber5(int argc, char *argv[]);
 
 int main(int argc, char *argv[])
 {
@@ -28,7 +29,8 @@ int main(int argc, char *argv[])
     //p3_7_fdProcess(argc, argv);
     //p3_9_maxData(argc, argv);
     //p3_10_maxData2(argc, argv);
-    p4_1_primeNumber(argc, argv);
+    //p4_1_primeNumber(argc, argv);
+    p4_4_primeNumber5(argc, argv);
 
 	return 0;
 }
