@@ -15,6 +15,7 @@ namespace
         double  y;
         double  angle;
         double  speed;
+		pthread_mutex_t mutex;
     } Fly;
 
     const int32_t kWidth = 78;
@@ -26,7 +27,6 @@ namespace
     const float kMaxSpeed = 20.0f;
 
     bool g_stop_request;
-    pthread_mutex_t g_mutex;
 
     Fly g_fly_list[kMaxFly];
 
@@ -61,10 +61,13 @@ namespace
         fly->y = randDouble(0, static_cast<double>(kHeight - 1));
         fly->angle = randDouble(0, M_2_PI);
         fly->speed = randDouble(kMinSpeed, kMaxSpeed);
+		pthread_mutex_init(&fly->mutex, NULL);
     }
 
     void flyMove(Fly *fly)
     {
+		pthread_mutex_lock(&fly->mutex);
+
 		fly->x += cos(fly->angle);
 		fly->y += sin(fly->angle);
 
@@ -91,11 +94,17 @@ namespace
 			fly->y = kHeight - 1;
 			fly->angle = -(fly->angle);
 		}
+
+		pthread_mutex_unlock(&fly->mutex);
     }
 
-    bool isFlyAt(const Fly &fly, int32_t x, int32_t y)
+    bool isFlyAt(Fly &fly, int32_t x, int32_t y)
     {
-		return (static_cast<int>(fly.x) == x) && (static_cast<int>(fly.y) == y);
+		pthread_mutex_lock(&fly.mutex);
+		bool ret = (static_cast<int>(fly.x) == x) && (static_cast<int>(fly.y) == y);
+		pthread_mutex_unlock(&fly.mutex);
+
+		return ret;
     }
 
     void *doMove(void *arg)
@@ -104,12 +113,7 @@ namespace
 
         while (!g_stop_request)
         {
-            pthread_mutex_lock(&g_mutex);
-			{
-				flyMove(fly);
-			}
-            pthread_mutex_unlock(&g_mutex);
-
+			flyMove(fly);
             mSleep(static_cast<int>(1000.0 / fly->speed));
         }
 
@@ -166,12 +170,7 @@ namespace
     {
 		while (!g_stop_request)
 		{
-			pthread_mutex_lock(&g_mutex);
-			{
-				drawScreen();
-			}
-			pthread_mutex_unlock(&g_mutex);
-
+			drawScreen();
 			mSleep(kDrawCycle);
 		}
 
@@ -186,8 +185,6 @@ int p4_8_fly(int argc, char *argv[])
 	g_stop_request = false;
 
     srand(static_cast<unsigned int>(time(NULL)));
-
-    pthread_mutex_init(&g_mutex, NULL);
 
     clearScreen();
 
@@ -221,10 +218,9 @@ int p4_8_fly(int argc, char *argv[])
 	for (int32_t i = 0; i < kMaxFly; ++i)
 	{
 		pthread_join(move_thread[i], NULL);
+		pthread_mutex_destroy(&g_fly_list[i].mutex);
 	}
 
-
-    pthread_mutex_destroy(&g_mutex);
 
     return 0;
 }
