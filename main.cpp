@@ -15,6 +15,7 @@ int p3_10_maxData2(int argc, char *argv[]);
 int p4_1_primeNumber(int argc, char *argv[]);
 int p4_4_primeNumber5(int argc, char *argv[]);
 int p4_6_fastPrimeNumber(int argc, char *argv[]);
+int p4_8_fly(int argc, char *argv[]);
 
 int main(int argc, char *argv[])
 {
@@ -32,7 +33,8 @@ int main(int argc, char *argv[])
     //p3_10_maxData2(argc, argv);
     //p4_1_primeNumber(argc, argv);
     //p4_4_primeNumber5(argc, argv);
-    p4_6_fastPrimeNumber(argc, argv);
+    //p4_6_fastPrimeNumber(argc, argv);
+    p4_8_fly(argc, argv);
 
 	return 0;
 }
