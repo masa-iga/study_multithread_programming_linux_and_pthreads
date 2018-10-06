@@ -6,6 +6,8 @@
 #include <cmath>
 #include "helper.h"
 
+#define USE_RWLOCK
+
 namespace
 {
     typedef struct
@@ -15,7 +17,11 @@ namespace
         double  y;
         double  angle;
         double  speed;
-		pthread_mutex_t mutex;
+#ifdef USE_RWLOCK
+        pthread_rwlock_t rwlock;
+#else
+        pthread_mutex_t mutex;
+#endif // USE_RWLOCK
     } Fly;
 
     const int32_t kWidth = 78;
@@ -66,19 +72,31 @@ namespace
         fly->y = randDouble(0, static_cast<double>(kHeight - 1));
         fly->angle = randDouble(0, M_2_PI);
         fly->speed = randDouble(kMinSpeed, kMaxSpeed);
+#ifdef USE_RWLOCK
+        pthread_rwlock_init(&fly->rwlock, NULL);
+#else
 		pthread_mutex_init(&fly->mutex, NULL);
+#endif // USE_RWLOCK
     }
 
 
 	double flyDistance(Fly *fly, double x, double y)
 	{
+#ifdef USE_RWLOCK
+        pthread_rwlock_rdlock(&fly->rwlock);
+#else
 		pthread_mutex_lock(&fly->mutex);
+#endif // USE_RWLOCK
 
 		const double dx = x - fly->x;
 		const double dy = y - fly->y;
 		const double d = sqrt(dx * dx + dy * dy);
 
+#ifdef USE_RWLOCK
+        pthread_rwlock_unlock(&fly->rwlock);
+#else
 		pthread_mutex_unlock(&fly->mutex);
+#endif // USE_RWLOCK
 
 		return d;
 	}
@@ -86,7 +104,11 @@ namespace
 
     void flyMove(Fly *fly)
     {
+#ifdef USE_RWLOCK
+        pthread_rwlock_wrlock(&fly->rwlock);
+#else
 		pthread_mutex_lock(&fly->mutex);
+#endif // USE_RWLOCK
 
 		fly->x += cos(fly->angle);
 		fly->y += sin(fly->angle);
@@ -115,7 +137,11 @@ namespace
 			fly->angle = -(fly->angle);
 		}
 
+#ifdef USE_RWLOCK
+        pthread_rwlock_unlock(&fly->rwlock);
+#else
 		pthread_mutex_unlock(&fly->mutex);
+#endif // USE_RWLOCK
 
 		for (int32_t i = 0; i < kMaxFly; ++i)
 		{
@@ -132,9 +158,17 @@ namespace
 
     bool isFlyAt(Fly &fly, int32_t x, int32_t y)
     {
+#ifdef USE_RWLOCK
+        pthread_rwlock_rdlock(&fly.rwlock);
+#else
 		pthread_mutex_lock(&fly.mutex);
+#endif // USE_RWLOCK
 		bool ret = (static_cast<int>(fly.x) == x) && (static_cast<int>(fly.y) == y);
+#ifdef USE_RWLOCK
+        pthread_rwlock_unlock(&fly.rwlock);
+#else
 		pthread_mutex_unlock(&fly.mutex);
+#endif // USE_RWLOCK
 
 		return ret;
     }
@@ -251,7 +285,11 @@ int p4_11_fly3(int argc, char *argv[])
 	for (int32_t i = 0; i < kMaxFly; ++i)
 	{
 		pthread_join(move_thread[i], NULL);
+#ifdef USE_RWLOCK
+        pthread_rwlock_destroy(&g_fly_list[i].rwlock);
+#else
 		pthread_mutex_destroy(&g_fly_list[i].mutex);
+#endif // USE_RWLOCK
 	}
 
 
