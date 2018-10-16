@@ -26,6 +26,7 @@ namespace
 		double	destY;
 		bool	busy;
 		pthread_mutex_t	mutex;
+        pthread_cond_t cond;
 	} Fly;
 
 
@@ -72,6 +73,7 @@ namespace
 	{
 		fly->mark = mark_;
 		pthread_mutex_init(&fly->mutex, NULL);
+        pthread_cond_init(&fly->cond, NULL);
 		fly->x = static_cast<double>(kWidth) / 2.0f;
 		fly->y = static_cast<double>(kHeight) / 2.0f;
 		fly->angle = 0.0f;
@@ -87,6 +89,7 @@ namespace
 	void flyDestroy(Fly *fly)
 	{
         pthread_mutex_destroy(&fly->mutex);
+        pthread_cond_destroy(&fly->cond);
 	}
 	
 
@@ -168,10 +171,24 @@ namespace
         {
             fly->destX = x;
             fly->destY = y;
+			pthread_cond_signal(&fly->cond);
         }
         pthread_mutex_unlock(&fly->mutex);
 
 		return true;
+	}
+
+	void flyWaitForSetDestination(Fly *fly)
+	{
+		pthread_mutex_lock(&fly->mutex);
+		{
+			if (pthread_cond_wait(&fly->cond, &fly->mutex) != 0)
+			{
+				VPRINTF("fatal error on pthread_cond_wait.\n");
+				exit(1);
+			}
+		}
+		pthread_mutex_unlock(&fly->mutex);
 	}
 
 
@@ -184,10 +201,19 @@ namespace
 			/* wait until destination is set */
 			fly->busy = false;
 
+#if 0
 			while ((flyDistanceToDestination(fly) < 1.0f) && !g_stop_request)
 			{
 				mSleep(100);
 			}
+#else
+			flyWaitForSetDestination(fly);
+
+			if (flyDistanceToDestination(fly) < 1.0f)
+			{
+				continue;
+			}
+#endif
 
 			fly->busy = true;
 
