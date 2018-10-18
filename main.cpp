@@ -48,8 +48,8 @@ int main(int argc, char *argv[])
     //p4_6_fastPrimeNumber(argc, argv);
     //p4_8_fly(argc, argv);
     //p4_11_fly3(argc, argv);
-    //p5_1_soloFly(argc, argv);
-    p5_2_condWait(argc, argv);
+    p5_1_soloFly(argc, argv);
+    //p5_2_condWait(argc, argv);
 
 	return 0;
 }

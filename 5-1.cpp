@@ -6,6 +6,10 @@
 #include <pthread.h>
 #include <cmath>
 #include "helper.h"
+#include <errno.h>
+#include <time.h>
+
+#define POLLING (0)
 
 namespace
 {
@@ -178,17 +182,48 @@ namespace
 		return true;
 	}
 
-	void flyWaitForSetDestination(Fly *fly)
+
+    int pthread_cond_timedwait_msec(pthread_cond_t *cond, pthread_mutex_t *mutex, long msec)
+    {
+        struct timespec ts;
+        {
+            clock_gettime(CLOCK_REALTIME, &ts);
+            ts.tv_sec += msec / 1000;
+            ts.tv_nsec += (msec % 1000) * 1000 * 1000;
+
+            if (ts.tv_nsec >= 1000 * 1000 * 1000)
+            {
+                ++ts.tv_sec;
+                ts.tv_nsec -= 1000 * 1000 * 1000;
+            }
+        }
+
+        return pthread_cond_timedwait(cond, mutex, &ts);
+    }
+
+
+	bool flyWaitForSetDestination(Fly *fly, uint32_t msec)
 	{
+        bool res = false;
+
 		pthread_mutex_lock(&fly->mutex);
 		{
-			if (pthread_cond_wait(&fly->cond, &fly->mutex) != 0)
-			{
-				VPRINTF("fatal error on pthread_cond_wait.\n");
-				exit(1);
-			}
+            switch (pthread_cond_timedwait_msec(&fly->cond, &fly->mutex, msec))
+            {
+                case 0:
+                    res = true;
+                    break;
+                case ETIMEDOUT:
+                    res = false;
+                    break;
+                default:
+                    VPRINTF("fatal error on pthread_cond_wait.\n");
+                    exit(1);
+            }
 		}
 		pthread_mutex_unlock(&fly->mutex);
+
+        return res;
 	}
 
 
@@ -201,13 +236,16 @@ namespace
 			/* wait until destination is set */
 			fly->busy = false;
 
-#if 0
+#if POLLING
 			while ((flyDistanceToDestination(fly) < 1.0f) && !g_stop_request)
 			{
 				mSleep(100);
 			}
 #else
-			flyWaitForSetDestination(fly);
+			if (!flyWaitForSetDestination(fly, 100))
+            {
+                continue;
+            }
 
 			if (flyDistanceToDestination(fly) < 1.0f)
 			{
@@ -336,12 +374,17 @@ int p5_1_soloFly(int argc, char *argv[])
         }
     }
 
+    VPRINTF("top request\n");
     g_stop_request = true;
 
     pthread_join(drawThread, NULL);
+    VPRINTF("drawThread() stopped\n");
+
     pthread_join(moveThread, NULL);
+    VPRINTF("moveThread() stopped\n");
 
     flyDestroy(&g_fly_list[0]);
+    VPRINTF("flyDestroy() finishetop\n");
 
     return 0;
 }
