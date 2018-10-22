@@ -11,6 +11,12 @@
 
 #define POLLING (0)
 
+
+#if !POLLING
+pthread_mutex_t g_mutex_draw;
+pthread_cond_t g_cond_draw;
+#endif // !POLLING
+
 namespace
 {
 	const int32_t kWidth = 78;
@@ -106,6 +112,12 @@ namespace
 			fly->y += sin(fly->angle);
 		}
 		pthread_mutex_unlock(&fly->mutex);
+
+        pthread_mutex_lock(&g_mutex_draw);
+        {
+            pthread_cond_signal(&g_cond_draw);
+        }
+        pthread_mutex_unlock(&g_mutex_draw);
 	}
 
 
@@ -251,7 +263,7 @@ namespace
 			{
 				continue;
 			}
-#endif
+#endif // POLLING
 
 			fly->busy = true;
 
@@ -321,11 +333,38 @@ namespace
 
 	void *doDraw(void *arg)
 	{
+
+#if POLLING
         while (!g_stop_request)
         {
             drawScreen();
             mSleep(kDrawCycle);
         }
+
+#else
+        // TODO: send signal somewhere
+
+        pthread_mutex_lock(&g_mutex_draw);
+        {
+            while (!g_stop_request)
+            {
+                switch (pthread_cond_timedwait_msec(&g_cond_draw, &g_mutex_draw, 1000))
+                {
+                    case 0:
+                        drawScreen();
+                        break;
+                    case ETIMEDOUT:
+                        // TODO
+                        break;
+                    default:
+                        VPRINTF("fatal error on pthread_cond_wait().\n");
+                        exit(1);
+                }
+            }
+        }
+        pthread_mutex_unlock(&g_mutex_draw);
+
+#endif // POLLING
 
 		return nullptr;
 	}
@@ -340,6 +379,8 @@ int p5_1_soloFly(int argc, char *argv[])
 	clearScreen();
 	flyInitCenter(&g_fly_list[0], '@');
 	g_stop_request = false;
+    pthread_mutex_init(&g_mutex_draw, NULL);
+    pthread_cond_init(&g_cond_draw, NULL);
 
 
 	pthread_t moveThread;
@@ -385,6 +426,9 @@ int p5_1_soloFly(int argc, char *argv[])
 
     flyDestroy(&g_fly_list[0]);
     VPRINTF("flyDestroy() finishetop\n");
+
+    pthread_mutex_destroy(&g_mutex_draw);
+    pthread_cond_destroy(&g_cond_draw);
 
     return 0;
 }
